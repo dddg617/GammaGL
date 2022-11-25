@@ -125,8 +125,13 @@ class RGCNConv(MessagePassing):
 
         weight = self.weight
         if self.num_bases is not None:  # Basis-decomposition =================
-            weight = (self.base_att @ weight.view(self.num_bases, -1)).view(
-                self.num_relations, self.in_channels_l, self.out_channels)
+            weight = (self.base_att @ tlx.nn.Reshape(shape = [self.num_bases, -1], 
+                                                     name = "reshape1")(weight)
+                      )
+            weight = tlx.nn.Reshape(shape = [self.num_relations, self.in_channels_l, self.out_channels],
+                                    name = "reshape2")(weight)
+            # weight = (self.base_att @ weight.view(self.num_bases, -1)).view(
+            #     self.num_relations, self.in_channels_l, self.out_channels)
 
         if self.num_blocks is not None:  # Block-diagonal-decomposition =====
             if x_l.dtype == tlx.int64 and self.num_blocks is not None:
@@ -135,10 +140,12 @@ class RGCNConv(MessagePassing):
 
             for i in range(self.num_relations):
                 edges = masked_edge_index(edge_index, edge_type == i)
-                h = self.propagate(x_l, edges, size[1])
+                h = self.propagate(x_l, edges, num_nodes=size[1])
                 h = tlx.reshape(h, (-1, weight.shape[1], weight.shape[2]))
                 h = tlx.einsum('abc,bcd->abd', h, weight[i]) # not support ms
-                out += h.contiguous().view(-1, self.out_channels)
+                out += tlx.nn.Reshape(shape = [-1, self.out_channels],
+                                      name = "reshape")(h)
+                # out += h.contiguous().view(-1, self.out_channels)
 
         else:  # No regularization/Basis-decomposition ========================
             for i in range(self.num_relations):
@@ -153,7 +160,7 @@ class RGCNConv(MessagePassing):
                 if x_l.dtype == tlx.int64 or str(x_l.dtype) == 'paddle.int64': # paddle 报错
                     out += self.propagate(tlx.gather(weight[i], x_l), edges, num_nodes=size[1])
                 else:
-                    h = self.propagate(x, edges, num_nodes=size[1])
+                    h = self.propagate(x_l, edges, num_nodes=size[1])
                     out = out + (h @ weight[i])
 
         root = self.root

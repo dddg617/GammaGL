@@ -25,7 +25,7 @@ class SemAttAggr(Module):
         w = tlx.reduce_mean(self.project(z), axis=1)    # (M, 1)
         beta = tlx.softmax(w, axis=0)                   # (M, 1)
         beta = tlx.expand_dims(beta, axis=-1)  # (M, 1, 1) # auto expand
-        return tlx.reduce_sum(beta * z, axis=0) # (N, H)
+        return tlx.reduce_sum(beta * self.project[0](z), axis=0) # (N, H)
 
 
 class HANConv(MessagePassing):
@@ -108,9 +108,9 @@ class HANConv(MessagePassing):
         for edge_type, edge_index in edge_index_dict.items():
             src_type, _, dst_type = edge_type
             edge_type = '__'.join(edge_type)
-            out = self.gat_dict[edge_type](x_dict[dst_type],
+            out = self.gat_dict[edge_type](x_dict[src_type],
                                            edge_index,
-                                           num_nodes_dict[dst_type])
+                                           num_nodes = num_nodes_dict[dst_type])
             out = tlx.relu(out)
             out_dict[dst_type].append(out)
 

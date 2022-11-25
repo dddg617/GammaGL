@@ -64,7 +64,7 @@ class GATConv(MessagePassing):
                  concat=True,
                  negative_slope=0.2,
                  dropout_rate=0,
-                 add_bias=True):
+                 add_bias=False):
         super().__init__()
 
         self.in_channels = in_channels
