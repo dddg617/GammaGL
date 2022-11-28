@@ -149,7 +149,7 @@ class HardGATConv(MessagePassing):
         x = tlx.gather(x, node_src) * tlx.expand_dims(alpha, -1)
         return x * edge_weight if edge_weight else x
 
-    def forward(self, x, edge_index, num_nodes):
+    def forward(self, x, edge_index, num_nodes = None):
         # projection process to get importance vector y
         y = tlx.abs(tlx.squeeze(tlx.matmul(self.p, tlx.transpose(x)), axis=0)) / math.sqrt(tlx.ops.reduce_sum(self.p ** 2))
         edge_index = self.select_topk(edge_index, y)
