@@ -12,6 +12,6 @@ def test_pna_conv():
     edge_index = tlx.convert_to_tensor([[0, 0, 0, 1, 2, 3], [1, 2, 3, 0, 0, 0]])
 
     conv = PNAConv(16, 32, aggregators, scalers,
-                   deg=tlx.convert_to_tensor([0, 3, 0, 1]), edge_dim=3, towers=4)
+                   deg=tlx.convert_to_tensor([0, 3, 0, 1]), edge_dim=None, towers=4)
     out = conv(x, edge_index)
     assert out.shape == (4, 32)
