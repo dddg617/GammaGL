@@ -25,7 +25,7 @@ class SemAttAggr(Module):
         w = tlx.reduce_mean(self.project(z), axis=1)    # (M, 1)
         beta = tlx.softmax(w, axis=0)                   # (M, 1)
         beta = tlx.expand_dims(beta, axis=-1)  # (M, 1, 1) # auto expand
-        return tlx.reduce_sum(beta * self.project[0](z), axis=0) # (N, H)
+        return tlx.reduce_sum(beta * z, axis=0) # (N, H)
 
 
 class HANConv(MessagePassing):

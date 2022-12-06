@@ -11,6 +11,7 @@ from .agnn import AGNNModel
 from .jknet import JKNet
 from .han import HAN
 from .dgi import DGIModel
+from .mlp import MLP
 from .grace import GraceModel
 from .chebnet import ChebNetModel
 from .simplehgn import SimpleHGNModel

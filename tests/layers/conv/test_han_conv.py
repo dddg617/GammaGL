@@ -26,20 +26,20 @@ def test_han_conv():
     conv = HANConv(in_channels, 16, metadata, heads=2)
     out_dict1 = conv(x_dict, edge_index_dict, num_nodes_dict)
     assert len(out_dict1) == 2
-    assert out_dict1['author'].shape == (6, 16)
-    assert out_dict1['paper'].shape == (5, 16)
+    assert tlx.get_tensor_shape(out_dict1['author']) == [6, 32]
+    assert tlx.get_tensor_shape(out_dict1['paper']) == [5, 32]
 
     # non zero dropout
     conv = HANConv(in_channels, 16, metadata, heads=2, dropout_rate=0.1)
     out_dict1 = conv(x_dict, edge_index_dict, num_nodes_dict)
     assert len(out_dict1) == 2
-    assert out_dict1['author'].shape == (6, 16)
-    assert out_dict1['paper'].shape == (5, 16)
+    assert tlx.get_tensor_shape(out_dict1['author']) == [6, 32]
+    assert tlx.get_tensor_shape(out_dict1['paper']) == [5, 32]
 
 def test_han_conv_empty_tensor():
     x_dict = {
         'author': tlx.random_normal((6, 16), dtype = tlx.float32),
-        'paper': tlx.random_uniform((0, 12), 0, 0, dtype = tlx.float32),
+        'paper': tlx.random_uniform((0, 12), dtype = tlx.float32),
     }
     edge_index_dict = {
         ('paper', 'to', 'author'): tlx.random_uniform((2, 0), 0, 0, dtype = tlx.int64),
@@ -56,6 +56,7 @@ def test_han_conv_empty_tensor():
 
     out_dict = conv(x_dict, edge_index_dict, num_nodes_dict)
     assert len(out_dict) == 2
-    assert out_dict['author'].shape == (6, 16)
-    assert tlx.all(out_dict['author'] == 0)
-    assert out_dict['paper'].shape == (0, 16)
+    assert tlx.get_tensor_shape(out_dict['author'])== [6, 32]
+    if tlx.BACKEND in ('torch', 'mindspore'):
+        assert tlx.all(out_dict['author'] == 0)
+    assert tlx.get_tensor_shape(out_dict['paper']) == [0, 32]
