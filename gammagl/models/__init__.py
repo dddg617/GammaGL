@@ -33,6 +33,8 @@ from .gen import GEstimationN
 from .deepwalk import DeepWalkModel
 from .node2vec import Node2vecModel
 from .hpn import HPN
+from .loss import BPRLoss, EmbLoss
+from .lightgcn import LightGCN
 
 
 __all__ = [
@@ -71,7 +73,9 @@ __all__ = [
     'Node2vecModel',
     'VGAEModel',
     'GAEModel',
-    'HPN'
+    'HPN',
+    'BPRLoss',
+    'EmbLoss'
     
 ]
 

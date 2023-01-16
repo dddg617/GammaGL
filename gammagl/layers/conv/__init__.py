@@ -23,6 +23,7 @@ from .pna_conv import PNAConv
 from .film_conv import FILMConv
 from .edgeconv import EdgeConv
 from .hpn_conv import HPNConv
+from .lightgcn_conv import LightGCNConv
 
 __all__ = [
     'MessagePassing',
