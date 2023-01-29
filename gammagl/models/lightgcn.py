@@ -41,6 +41,7 @@ class LightGCN(tlx.nn.Module):
         self.restore_item_e = None
 
         # parameters initialization
+        self.apply(tlx.nn.xavier_uniform)
         self.other_parameter_name = ['restore_user_e', 'restore_item_e']
 
     def get_ego_embeddings(self):

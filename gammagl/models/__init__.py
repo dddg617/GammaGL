@@ -35,6 +35,11 @@ from .node2vec import Node2vecModel
 from .hpn import HPN
 from .loss import BPRLoss, EmbLoss
 from .lightgcn import LightGCN
+from .hmlet import HMLET
+from .ncl import NCL
+from .ngcf import NGCF
+from .sgl import SGL
+from .simgcl import SimGCL
 
 
 __all__ = [
@@ -75,7 +80,13 @@ __all__ = [
     'GAEModel',
     'HPN',
     'BPRLoss',
-    'EmbLoss'
+    'EmbLoss',
+    'LightGCN',
+    'HMLET',
+    'NCL',
+    'NGCF',
+    'SGL',
+    'SimGCL'
     
 ]
 

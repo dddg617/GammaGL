@@ -24,6 +24,7 @@ from .film_conv import FILMConv
 from .edgeconv import EdgeConv
 from .hpn_conv import HPNConv
 from .lightgcn_conv import LightGCNConv
+from .bignn_conv import BiGNNConv
 
 __all__ = [
     'MessagePassing',
@@ -49,7 +50,9 @@ __all__ = [
     'PNAConv',
     'FILMConv',
     'EdgeConv',
-    'HPNConv'
+    'HPNConv',
+    'LightGCNConv',
+    'BiGNNConv'
 
 ]
 
