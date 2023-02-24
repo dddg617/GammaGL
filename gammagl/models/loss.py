@@ -38,7 +38,7 @@ class EmbLoss(tlx.nn.Module):
             emb_loss = tlx.zeros(1)
             for embedding in embeddings:
                 emb_loss += tlx.pow(
-                    self.normalize(embedding, p=self.norm), exponent=self.norm
+                    self.normalize(embedding, p=self.norm), self.norm
                 )
             emb_loss /= tlx.get_tensor_shape(embeddings[-1])[0]
             emb_loss /= self.norm

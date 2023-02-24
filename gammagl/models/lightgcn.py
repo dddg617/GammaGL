@@ -1,9 +1,10 @@
 import numpy as np
 import tensorlayerx as tlx
+from gammagl.utils import degree
 
+from gammagl.mpops import segment_sum, unsorted_segment_sum
 from gammagl.layers.conv import LightGCNConv
 from gammagl.models import BPRLoss, EmbLoss
-
 
 
 class LightGCN(tlx.nn.Module):
@@ -15,7 +16,9 @@ class LightGCN(tlx.nn.Module):
     We implement the model following the original author with a pairwise training mode.
     """
 
-    def __init__(self, embedding_size, n_layers, reg_weight, require_pow, user_id, item_id, neg_item_id, n_users, n_items):
+    # def __init__(self, embedding_size, n_layers, reg_weight, require_pow, user_id, item_id, neg_item_id, n_users,
+    #              n_items):
+    def __init__(self, graph, embedding_size=128, n_layers=2, reg_weight=1e-05, require_pow=True):
         super(LightGCN, self).__init__()
 
         # load parameters info
@@ -23,11 +26,31 @@ class LightGCN(tlx.nn.Module):
         self.n_layers = n_layers
         self.reg_weight = reg_weight
         self.require_pow = require_pow
-        self.n_users = n_users
-        self.n_items = n_items
-        self.USER_ID = user_id
-        self.ITEM_ID = item_id
-        self.NEG_ITEM_ID = neg_item_id
+        self.n_users = graph.n_users
+        self.n_items = graph.n_items
+
+        def get_norm_edge_weight(edge_index):
+            row = edge_index[0, :]
+            col = edge_index[1, :]
+
+            edge_index1 = tlx.stack([row, col])
+            edge_index2 = tlx.stack([col, row])
+            edge_index = tlx.concat([edge_index1, edge_index2], axis=1)
+
+            deg = degree(edge_index[0, :], num_nodes=graph.n_users + graph.n_items)
+
+            norm_deg = 1. / tlx.sqrt(tlx.where(deg == 0, tlx.ones([1]), deg))
+            # edge_weight = norm_deg[edge_index[0]] * norm_deg[edge_index[1]]
+
+            edge_weight = tlx.gather(norm_deg, edge_index[0]) * tlx.gather(norm_deg, edge_index[1])
+
+            return edge_index, edge_weight
+
+        self.edge_index, self.edge_weight = get_norm_edge_weight(graph.edge_index)
+
+        self.USER_ID = 'user_id'
+        self.ITEM_ID = 'item_id'
+        self.NEG_ITEM_ID = 'neg_item_id'
 
         # define layers and loss
         self.user_embedding = tlx.nn.Embedding(num_embeddings=self.n_users, embedding_dim=self.latent_dim)
@@ -41,7 +64,7 @@ class LightGCN(tlx.nn.Module):
         self.restore_item_e = None
 
         # parameters initialization
-        self.apply(tlx.nn.xavier_uniform)
+        # self.apply(tlx.nn.xavier_uniform)
         self.other_parameter_name = ['restore_user_e', 'restore_item_e']
 
     def get_ego_embeddings(self):
@@ -54,11 +77,11 @@ class LightGCN(tlx.nn.Module):
         ego_embeddings = tlx.concat([user_embeddings, item_embeddings], axis=0)
         return ego_embeddings
 
-    def forward(self, edge_index, edge_weight = None):
+    def get_all_embedding(self):
         all_embeddings = self.get_ego_embeddings()
         embeddings_list = [all_embeddings]
 
-        for layer_idx in range(self.n_layers):
+        for _ in range(self.n_layers):
             all_embeddings = self.gcn_conv(all_embeddings, self.edge_index, self.edge_weight)
             embeddings_list.append(all_embeddings)
         lightgcn_all_embeddings = tlx.stack(embeddings_list, axis=1)
@@ -76,10 +99,11 @@ class LightGCN(tlx.nn.Module):
         pos_item = interaction[self.ITEM_ID]
         neg_item = interaction[self.NEG_ITEM_ID]
 
-        user_all_embeddings, item_all_embeddings = self.forward()
-        u_embeddings = user_all_embeddings[user]
-        pos_embeddings = item_all_embeddings[pos_item]
-        neg_embeddings = item_all_embeddings[neg_item]
+        user_all_embeddings, item_all_embeddings = self.get_all_embedding()
+
+        u_embeddings = tlx.gather(user_all_embeddings, user)
+        pos_embeddings = tlx.gather(item_all_embeddings, pos_item)
+        neg_embeddings = tlx.gather(item_all_embeddings, neg_item)
 
         # calculate BPR Loss
         pos_scores = tlx.reduce_sum(tlx.multiply(u_embeddings, pos_embeddings), axis=1)
@@ -96,25 +120,13 @@ class LightGCN(tlx.nn.Module):
 
         return loss
 
-    def predict(self, interaction):
-        user = interaction[self.USER_ID]
-        item = interaction[self.ITEM_ID]
+    def forward(self, interaction):
+        user_idx = interaction[self.USER_ID]
+        item_idx = interaction[self.ITEM_ID]
 
-        user_all_embeddings, item_all_embeddings = self.forward()
+        user_all_embeddings, item_all_embeddings = self.get_all_embedding()
 
-        u_embeddings = user_all_embeddings[user]
-        i_embeddings = item_all_embeddings[item]
-        scores = tlx.reduce_sum(tlx.multiply(u_embeddings, i_embeddings), axis=1)
-        return scores
+        u_embeddings = tlx.gather(user_all_embeddings, user_idx)
+        i_embeddings = tlx.gather(item_all_embeddings, item_idx)
 
-    def full_sort_predict(self, interaction):
-        user = interaction[self.USER_ID]
-        if self.restore_user_e is None or self.restore_item_e is None:
-            self.restore_user_e, self.restore_item_e = self.forward()
-        # get user embedding from storage variable
-        u_embeddings = self.restore_user_e[user]
-
-        # dot with all item embedding to accelerate
-        scores = tlx.matmul(u_embeddings, tlx.transpose(self.restore_item_e.transpose, [1, 0]))
-
-        return tlx.reshape(scores, -1)
+        return u_embeddings, i_embeddings
