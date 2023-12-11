@@ -16,7 +16,7 @@ class Reddit(InMemoryDataset):
 
     Parameters
     ----------
-    root: str
+    root: string
         Root directory where the dataset should be saved.
     transform: callable, optional
         A function/transform that takes in an
@@ -60,7 +60,7 @@ class Reddit(InMemoryDataset):
 
         edge = np.array([adj.row, adj.col], dtype=np.int64)
 
-        edge, _ = coalesce(edge, None, x.shape[0], x.shape[0])
+        edge, _ = coalesce(tlx.convert_to_tensor(edge, dtype=tlx.int64), None, x.shape[0], x.shape[0])
 
         data = Graph(edge_index=edge, x=x, y=y)
 
